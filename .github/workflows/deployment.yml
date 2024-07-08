@@ -1,4 +1,4 @@
-name: Deploy Strapi Application
+name: Deploy Strapi
 
 on:
   push:
@@ -10,36 +10,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Add SSH key
-      run: |
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
+      - name: Set up SSH
+        env:
+          SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H your-ec2-instance-public-ip >> ~/.ssh/known_hosts
 
-    - name: Install SSH Client
-      run: sudo apt-get install -y ssh
+      - name: Install dependencies
+        run: sudo apt-get install -y ssh
 
-    - name: SSH into EC2 and deploy Strapi
-      env:
-        EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
-      run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${EC2_PUBLIC_IP} <<EOF
-          sudo yum update -y
-          curl -sL https://rpm.nodesource.com/setup_14.x | sudo bash -
-          sudo yum install -y nodejs
-          sudo npm install -g pm2
-          if [ ! -d "/srv/strapi" ]; then
-            sudo mkdir -p /srv/strapi
-            sudo chown ec2-user:ec2-user /srv/strapi
-          fi
-          cd /srv/strapi
-          git pull origin main || git clone https://github.com/gampasivakumar4422/strapi-app.git .
-          ls -l /srv/strapi # Debug step to list files in /srv/strapi
-          cat /srv/strapi/package.json # Debug step to check if package.json exists
-          npm install
-          npm run build
-          pm2 restart strapi || pm2 start npm --name "strapi" -- start
-        EOF
-
+      - name: Run Terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          cd terraform
+          terraform init
+          terraform apply -auto-approve
