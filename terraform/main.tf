@@ -4,7 +4,7 @@ provider "aws" {
 
 resource "aws_key_pair" "deployer" {
   key_name   = "deployer-key"
-  public_key = file("./id_rsa.pub")
+  public_key = file("C:/Users/91879/.ssh/id_rsa.pub")
 }
 
 resource "aws_security_group" "strapi_sg" {
@@ -58,7 +58,7 @@ resource "aws_instance" "strapi" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = file("./id_rsa")
+      private_key = file("C:/Users/91879/.ssh/id_rsa")
       host        = self.public_ip
     }
   }
