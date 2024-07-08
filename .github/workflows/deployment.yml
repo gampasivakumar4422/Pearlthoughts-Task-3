@@ -32,5 +32,5 @@ jobs:
         run: |
           cd terraform
           terraform init
-          terraform apply --auto-approve=true --var-file=terraform.tfvars  
+          terraform destroy --auto-approve=true --var-file=terraform.tfvars  
 
