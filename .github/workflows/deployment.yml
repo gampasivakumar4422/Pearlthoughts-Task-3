@@ -1,0 +1,45 @@
+name: Deploy Strapi Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Add SSH key
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+    - name: Install SSH Client
+      run: sudo apt-get install -y ssh
+
+    - name: SSH into EC2 and deploy Strapi
+      env:
+        EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${EC2_PUBLIC_IP} <<EOF
+          sudo yum update -y
+          curl -sL https://rpm.nodesource.com/setup_14.x | sudo bash -
+          sudo yum install -y nodejs
+          sudo npm install -g pm2
+          if [ ! -d "/srv/strapi" ]; then
+            sudo mkdir -p /srv/strapi
+            sudo chown ec2-user:ec2-user /srv/strapi
+          fi
+          cd /srv/strapi
+          git pull origin main || git clone https://github.com/gampasivakumar4422/strapi-app.git .
+          ls -l /srv/strapi # Debug step to list files in /srv/strapi
+          cat /srv/strapi/package.json # Debug step to check if package.json exists
+          npm install
+          npm run build
+          pm2 restart strapi || pm2 start npm --name "strapi" -- start
+        EOF
+
