@@ -57,7 +57,7 @@ jobs:
 
           # Restart Strapi using PM2
           pm2 stop simple-strapi || true
-          pm2 start npm --name "simple-strapi" -- start
+          pm2 start npm --name simple-strapi -- run develop
 
           # Check if the service is running on port 1337
           sleep 45
